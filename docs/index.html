@@ -200,43 +200,14 @@
         // 阻止右键菜单
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
-            window.location.href = '404.html';
         });
 
         // 阻止F12快捷键
         document.addEventListener('keydown', function(e) {
             if (e.key === 'F12') {
                 e.preventDefault();
-                window.location.href = '404.html';
             }
         });
-
-        // 定时检测控制台存在状态
-        setInterval(function() {
-            try {
-                // 检测控制台特殊属性
-                if (window.console && (window.console.memory || window.console.table)) {
-                    window.location.href = '404.html';
-                }
-            } catch(e) {
-                // 异常情况直接跳转
-                window.location.href = '404.html';
-            }
-        }, 500);
-
-        // 监控DOM变化
-        document.body.addEventListener('DOMSubtreeModified', function() {
-            if (window.console && window.console.log) {
-                window.location.href = '404.html';
-            }
-        });
-
-        // 防止通过窗口大小变化打开控制台
-        window.onresize = function() {
-            if (window.outerWidth != window.innerWidth || window.outerHeight != window.innerHeight) {
-                window.location.href = '404.html';
-            }
-        };
 
         // 隐藏控制台对象
         try {
