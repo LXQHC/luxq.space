@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>随机页面加载</title>
+    <title>luxq.space</title>
     <script>
         // 定义要随机加载的页面列表
         const pages = [
             'index1.html',      // 原index.html
-            'index.back.html',  // 原index.back.html
+            'index.back.html'   // 原index.back.html
             // 可以在这里添加更多页面
             // 'index2.html',
             // 'index3.html'
@@ -19,56 +19,147 @@
             return Math.floor(Math.random() * pages.length);
         }
 
-        // 随机重定向函数
-        function randomRedirect() {
+        // 无缝加载随机页面
+        function loadRandomPage() {
             try {
                 // 获取随机页面
                 const randomPage = pages[getRandomIndex()];
-                
-                // 记录日志（可选）
                 console.log('随机加载页面:', randomPage);
-                
-                // 执行重定向
-                window.location.href = randomPage;
-                
+
+                // 使用fetch API加载页面内容
+                fetch(randomPage)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络响应不正常');
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // 替换整个页面内容
+                        document.open();
+                        document.write(html);
+                        document.close();
+                        
+                        // 更新页面标题（可选）
+                        const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+                        if (titleMatch && titleMatch[1]) {
+                            document.title = titleMatch[1];
+                        }
+                    })
+                    .catch(error => {
+                        console.error('加载页面出错:', error);
+                        // 出错时的备用方案
+                        showFallbackUI();
+                    });
+
             } catch (error) {
-                console.error('随机重定向出错:', error);
-                // 出错时显示备用链接
-                document.getElementById('js-disabled-message').style.display = 'block';
-                document.getElementById('loading-message').style.display = 'none';
+                console.error('无缝加载出错:', error);
+                showFallbackUI();
             }
         }
 
-        // 页面加载完成后执行重定向
+        // 显示备用UI
+        function showFallbackUI() {
+            document.body.innerHTML = `
+                <div class="fallback-container">
+                    <h2>页面加载失败</h2>
+                    <p>抱歉，页面加载出现问题。请尝试以下方式：</p>
+                    <div class="link-list">
+                        <a href="index1.html" class="fallback-link">访问默认页面</a>
+                        <a href="index.back.html" class="fallback-link">访问备用页面</a>
+                        <a href="/" class="fallback-link" onclick="location.reload()">刷新页面</a>
+                    </div>
+                    <p class="note">如果问题持续，请检查您的网络连接或稍后再试。</p>
+                </div>
+            `;
+        }
+
+        // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', function() {
-            // 隐藏JavaScript禁用提示
-            document.getElementById('js-disabled-message').style.display = 'none';
-            // 显示加载中提示
-            document.getElementById('loading-message').style.display = 'block';
-            // 执行重定向
-            randomRedirect();
+            // 检查是否支持fetch API
+            if (window.fetch) {
+                loadRandomPage();
+            } else {
+                // 不支持fetch时的降级方案
+                console.log('浏览器不支持fetch API，使用iframe方案');
+                useIframeFallback();
+            }
         });
+
+        // iframe降级方案
+        function useIframeFallback() {
+            const randomPage = pages[getRandomIndex()];
+            
+            // 创建全屏iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = randomPage;
+            iframe.style.position = 'fixed';
+            iframe.style.top = '0';
+            iframe.style.left = '0';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.zIndex = '1000';
+            
+            // 添加加载指示器
+            const loader = document.createElement('div');
+            loader.className = 'iframe-loader';
+            loader.innerHTML = `
+                <div class="spinner"></div>
+                <p>正在加载页面...</p>
+            `;
+            
+            // 监听iframe加载状态
+            iframe.onload = function() {
+                loader.style.display = 'none';
+                // 更新页面标题
+                try {
+                    document.title = iframe.contentDocument.title;
+                } catch (e) {
+                    // 跨域访问被阻止时忽略
+                }
+            };
+            
+            iframe.onerror = function() {
+                loader.innerHTML = `
+                    <div class="error-icon">⚠️</div>
+                    <p>页面加载失败</p>
+                    <a href="/" onclick="location.reload()" class="retry-link">重试</a>
+                `;
+            };
+            
+            // 添加到页面
+            document.body.appendChild(loader);
+            document.body.appendChild(iframe);
+        }
     </script>
     <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f8f9fa;
-            color: #333;
         }
-        .container {
+
+        /* 初始加载指示器 */
+        .initial-loader {
             text-align: center;
             padding: 30px;
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 90%;
         }
+
         .spinner {
             border: 5px solid #f3f3f3;
             border-top: 5px solid #4CAF50;
@@ -78,103 +169,159 @@
             animation: spin 1.5s linear infinite;
             margin: 0 auto 20px;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         h2 {
             margin-bottom: 15px;
             color: #2c3e50;
         }
+
         p {
             margin-bottom: 20px;
             line-height: 1.6;
         }
-        .alternative-links {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+
+        /* 备用UI样式 */
+        .fallback-container {
+            text-align: center;
+            padding: 40px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
         }
-        .alternative-links h3 {
-            margin-bottom: 15px;
-            color: #34495e;
-            font-size: 1.1em;
-        }
+
         .link-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
+            margin: 25px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .link-list li {
-            margin: 8px 0;
-        }
-        .link-list a {
+
+        .fallback-link {
             display: inline-block;
-            padding: 8px 16px;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+        }
+
+        .fallback-link:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .note {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f2f6;
+            border-radius: 6px;
+        }
+
+        /* iframe加载指示器 */
+        .iframe-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #e74c3c;
+        }
+
+        .retry-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
             background-color: #3498db;
             color: white;
             text-decoration: none;
             border-radius: 4px;
             transition: background-color 0.3s;
         }
-        .link-list a:hover {
+
+        .retry-link:hover {
             background-color: #2980b9;
         }
-        .note {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f1f2f6;
-            border-radius: 4px;
+
+        /* JavaScript禁用时的样式 */
+        .no-js-message {
+            text-align: center;
+            padding: 40px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
         }
-        /* JavaScript禁用时显示的样式 */
-        #js-disabled-message {
-            display: block;
+
+        .no-js-title {
+            color: #e74c3c;
+            margin-bottom: 20px;
         }
-        #loading-message {
-            display: none;
+
+        .no-js-links {
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .no-js-link {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+        }
+
+        .no-js-link:hover {
+            background-color: #2980b9;
         }
     </style>
+    <noscript>
+        <div class="no-js-message">
+            <h2 class="no-js-title">JavaScript已禁用</h2>
+            <p>您的浏览器已禁用JavaScript，无法体验完整功能。</p>
+            <p>请从下方选择一个页面访问：</p>
+            <div class="no-js-links">
+                <a href="index1.html" class="no-js-link">访问默认页面</a>
+                <a href="index.back.html" class="no-js-link">访问备用页面</a>
+                <a href="https://www.enable-javascript.com/" target="_blank" class="no-js-link">如何启用JavaScript</a>
+            </div>
+            <p class="note">启用JavaScript可以获得更好的用户体验，包括无缝随机页面加载功能。</p>
+        </div>
+    </noscript>
 </head>
 <body>
-    <div class="container">
-        <!-- JavaScript启用时显示 -->
-        <div id="loading-message">
-            <div class="spinner"></div>
-            <h2>正在加载随机页面...</h2>
-            <p>如果长时间没有跳转，请选择下方链接访问</p>
-            
-            <div class="alternative-links">
-                <h3>或选择访问：</h3>
-                <ul class="link-list">
-                    <li><a href="index1.html">默认页面</a></li>
-                    <li><a href="index.back.html">备用页面</a></li>
-                    <!-- 添加更多页面链接 -->
-                    <!-- <li><a href="index2.html">页面3</a></li> -->
-                </ul>
-            </div>
-        </div>
-
-        <!-- JavaScript禁用时显示 -->
-        <div id="js-disabled-message">
-            <h2>JavaScript已禁用</h2>
-            <p>您的浏览器已禁用JavaScript，无法自动加载随机页面。</p>
-            <p>请从下方选择一个页面访问：</p>
-            
-            <div class="alternative-links">
-                <ul class="link-list">
-                    <li><a href="index1.html">默认页面</a></li>
-                    <li><a href="index.back.html">备用页面</a></li>
-                    <!-- 添加更多页面链接 -->
-                    <!-- <li><a href="index2.html">页面3</a></li> -->
-                </ul>
-            </div>
-            
-            <div class="note">
-                <strong>提示：</strong>启用JavaScript可以获得更好的用户体验，包括自动随机页面加载功能。
-            </div>
-        </div>
+    <!-- 初始加载指示器 -->
+    <div class="initial-loader">
+        <div class="spinner"></div>
+        <h2>欢迎访问luxq.space</h2>
+        <p>正在为您准备个性化体验...</p>
     </div>
 </body>
 </html>
